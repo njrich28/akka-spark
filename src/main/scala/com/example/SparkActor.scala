@@ -12,27 +12,21 @@ class SparkActor extends Actor with ActorLogging {
   import SparkActor._
 
   val scheduler = context.system.scheduler
+
   implicit val ec = context.dispatcher
 
   val pollDelay = 2.seconds
 
-  var process: Process = _
-
-  var id: Integer = _
-
-  var poller: Cancellable = _
-
   def receive = {
     case Run(id) => {
       log.info("Running " + id)
-      this.id = id
-      process = runProcess
-      context become running
-      poller = scheduler.schedule(pollDelay, pollDelay, self, IsAlive)
+      val process = runProcess
+      val poller = scheduler.schedule(pollDelay, pollDelay, self, IsAlive)
+      context become running(id, process, poller)
     }
   }
 
-  def running: Receive = {
+  def running(id: Integer, process: Process, poller: Cancellable): Receive = {
     case IsAlive => {
       if (process.isAlive) {
         log.info(s"Process $id still alive")
