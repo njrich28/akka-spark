@@ -41,6 +41,22 @@ class SparkActor extends Actor with ActorLogging {
 
 }
 
+class SlightlyFixedSparkActor extends Actor with ActorLogging {
+  import SparkActor._
+
+  def receive = {
+    case Run(id) => {
+      log.info("Running " + id)
+      val p = runProcess
+      blocking {
+        p.waitFor()
+      }
+      log.info(s"Process $id finished")
+      sender ! Finished(id)
+    }
+  }
+}
+
 class BrokenSparkActor extends Actor with ActorLogging {
   import SparkActor._
 
@@ -48,9 +64,7 @@ class BrokenSparkActor extends Actor with ActorLogging {
     case Run(id) => {
       log.info("Running " + id)
       val p = runProcess
-//      blocking {
-        p.waitFor()
-//      }
+      p.waitFor()
       log.info(s"Process $id finished")
       sender ! Finished(id)
     }
@@ -59,6 +73,7 @@ class BrokenSparkActor extends Actor with ActorLogging {
 
 object SparkActor {
   val props = Props[SparkActor]
+  val propsSlightlyFixed = Props[SlightlyFixedSparkActor]
   val propsBroken = Props[BrokenSparkActor]
 
   def runProcess = new ProcessBuilder("sleep", "10s").start()
