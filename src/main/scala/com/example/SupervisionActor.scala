@@ -6,21 +6,19 @@ import akka.actor.{Actor, ActorLogging, Props}
   * Created by neilri on 21/12/2016.
   */
 class SupervisionActor extends Actor with ActorLogging {
-  import SupervisionActor._
-  import SparkActor._
 
   val numChildren = 80
 
   var countFinished = 0
 
   def receive = {
-    case RunJob => {
+    case SupervisionActor.RunJob => {
       for ( id <- 1 to numChildren ) {
         val sparkActor = context.actorOf(SparkActor.propsBroken)
-        sparkActor ! Run(id)
+        sparkActor ! SparkActor.Run(id)
       }
     }
-    case Finished(id) => {
+    case SparkActor.Finished(id) => {
       log.info("Supervisor notified finished " + id)
       countFinished += 1
       if (countFinished == numChildren) context.system.shutdown()

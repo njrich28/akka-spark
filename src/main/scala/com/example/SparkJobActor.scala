@@ -25,15 +25,15 @@ class SparkJobActor extends Actor with ActorLogging {
       }
 
       val handle = launcher.startApplication(listener)
-      context become launched(handle)
+      context become launched(handle, sender)
     }
   }
 
-  def launched(handle: SparkAppHandle): Receive = {
+  def launched(handle: SparkAppHandle, origSender: ActorRef): Receive = {
     case StateChanged => {
-      import SparkAppHandle.State
       if (handle.getState.isFinal) {
-        
+        origSender ! Finished(handle.getState)
+        context stop self
       }
     }
   }
@@ -42,4 +42,5 @@ class SparkJobActor extends Actor with ActorLogging {
 object SparkJobActor {
   case class Launch(appResource: String, mainClass: String, master: String, conf: Map[String, String])
   case object StateChanged
+  case class Finished(state: SparkAppHandle.State)
 }
